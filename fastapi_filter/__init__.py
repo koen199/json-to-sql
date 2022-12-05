@@ -9,14 +9,14 @@ if TYPE_CHECKING:
     from fastapi_filter.schemas import FilterSchema
 
 def query_with_filters(
-    session:Session,
+    session:'Session',
     class_:type,
-    filters: List[FilterSchema],
+    filters: List['FilterSchema'],
     property_map:Union[BaseModel, None]=None,
     order_by:Union[str, None]=None
 )->List[Any]:
     _filters = deserialize_filters(filters)
-    query = session.query()
+    query = session.query(class_)
     for f in _filters:
         query = f.apply(query, class_, property_map)
     if order_by:

@@ -18,10 +18,10 @@ RE_DATE = "^([0-9]{4})-([0-9]|1[0-2]|0[1-9])-([1-9]|0[1-9]|1[0-9]|2[1-9]|3[0-1])
 class Filter(abc.ABC):
     OP = None
 
-    def __init__(self, field: str, value: Any)->'Filter':
+    def __init__(self, filter_data:'FilterSchema')->'Filter':
         self.nested = None
-        self.set_field(field)
-        self.value = self._date_or_value(value)
+        self.set_field(filter_data.field)
+        self.value = self._date_or_value(filter_data.value)
         self.is_valid()
 
     def __repr__(self)->str:
@@ -46,7 +46,7 @@ class Filter(abc.ABC):
             )
 
     @abc.abstractmethod
-    def apply(self, query:Query, class_:type, property_map:pydantic.BaseModel)->Query:
+    def apply(self, query:'Query', class_:type, property_map:pydantic.BaseModel)->'Query':
         raise NotImplementedError('apply is an abstract method')
 
     @abc.abstractmethod
@@ -54,11 +54,6 @@ class Filter(abc.ABC):
         raise NotImplementedError('is_valid is an abstract method')
 
     def _get_db_field(self, property_map:pydantic.BaseModel)->str:
-        """ private method to convert JSON field to SQL column
-
-        :param schema: optional Marshmallow schema to map field -> column
-        :return: string field name
-        """
         if not property_map:
             return self.field
         attr = getattr(property_map, self.field) #maps exteral fieldname to database field
@@ -85,7 +80,100 @@ class RelativeComparator(Filter):
 class LTFilter(RelativeComparator):
     OP = "<"
 
-    def apply(self, query:Query, class_:type, schema:FilterSchema)->Query:
-        field = self._get_db_field(schema)
+    def apply(self, query:'Query', class_:type, property_map:'pydantic.BaseModel')->'Query':
+        field = self._get_db_field(property_map)
         return query.filter(getattr(class_, field) < self.value)
 
+class LTEFilter(RelativeComparator):
+    OP = "<="
+
+    def apply(self, query:'Query', class_:type, property_map:'pydantic.BaseModel')->'Query':
+        field = self._get_db_field(property_map)
+        return query.filter(getattr(class_, field) <= self.value)
+
+class GTFilter(RelativeComparator):
+    OP = ">"
+
+    def apply(self, query:'Query', class_:type, property_map:'pydantic.BaseModel')->'Query':
+        field = self._get_db_field(property_map)
+        return query.filter(getattr(class_, field) > self.value)
+
+class GTEFilter(RelativeComparator):
+    OP = ">="
+
+    def apply(self, query:'Query', class_:type, property_map:'pydantic.BaseModel')->'Query':
+        field = self._get_db_field(property_map)
+        return query.filter(getattr(class_, field) >= self.value)
+
+
+class EqualsFilter(Filter):
+    OP = "="
+
+    def apply(self, query:'Query', class_:type, property_map:'pydantic.BaseModel')->'Query':
+        field = self._get_db_field(property_map)
+        return query.filter(getattr(class_, field) == self.value)
+
+    def is_valid(self)->bool:
+        allowed = (str, int, datetime.date, None.__class__)
+        try:
+            assert isinstance(self.value, allowed)
+        except AssertionError:
+            raise pydantic.ValidationError(f"{self} requires a string or int value")
+
+class InFilter(Filter):
+    OP = "in"
+
+    # def __init__(self, field: str, value: Any):
+    #     if isinstance(value, str):
+    #         value = [value]
+    #     super().__init__(field, value)
+
+    def apply(self, query:'Query', class_:type, property_map:'pydantic.BaseModel')->'Query':
+        field = self._get_db_field(property_map)
+        return query.filter(getattr(class_, field).in_(list(self.value)))
+
+    def is_valid(self)->bool:
+        try:
+            _ = (e for e in self.value)
+        except TypeError:
+            raise pydantic.ValidationError(f"{self} must be an iterable")
+
+class NotEqualsFilter(Filter):
+    OP = "!="
+
+    def apply(self, query:'Query', class_:type, property_map:'pydantic.BaseModel')->'Query':
+        field = self._get_db_field(property_map)
+        return query.filter(getattr(class_, field) != self.value)
+
+    def is_valid(self)->bool:
+        allowed = (str, int, datetime.date, None.__class__)
+        try:
+            assert isinstance(self.value, allowed)
+        except AssertionError:
+            raise pydantic.ValidationError(f"{self} requires a string or int value")
+
+
+class LikeFilter(Filter):
+    OP = "like"
+
+    def apply(self, query:'Query', class_:type, property_map:'pydantic.BaseModel')->'Query':
+        field = self._get_db_field(property_map)
+        return query.filter(getattr(class_, field).like(self.value))
+
+    def is_valid(self)->bool:
+        try:
+            assert isinstance(self.value, str)
+        except AssertionError:
+            raise pydantic.ValidationError(f"{self} requires a string with a wildcard")
+
+class ContainsFilter(Filter):
+    OP = "contains"
+
+    def apply(self, query:'Query', class_:type, property_map:'pydantic.BaseModel')->'Query':
+        subfield = self.nested or "id"
+        q = {subfield: self.value}
+        field = self._get_db_field(property_map)
+        return query.filter(getattr(class_, field).any(**q))
+
+    def is_valid(self):
+        pass
