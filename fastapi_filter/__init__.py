@@ -12,7 +12,7 @@ def query_with_filters(
     session:'Session',
     class_:type,
     filters: List['FilterSchema'],
-    property_map:Union[BaseModel, None]=None,
+    property_map:Union[dict, None]=None,
     order_by:Union[str, None]=None
 )->List[Any]:
     _filters = deserialize_filters(filters)

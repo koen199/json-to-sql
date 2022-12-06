@@ -4,7 +4,7 @@ import datetime
 import logging
 import pydantic
 
-from typing import Any, TYPE_CHECKING
+from typing import Any, TYPE_CHECKING, Union
 if TYPE_CHECKING:
     from sqlalchemy.orm import Query
     from ..schemas import FilterSchema
@@ -12,8 +12,16 @@ if TYPE_CHECKING:
 
 
 logger = logging.getLogger(__name__)
-RE_DATE = "^([0-9]{4})-([0-9]|1[0-2]|0[1-9])-([1-9]|0[1-9]|1[0-9]|2[1-9]|3[0-1])$"
 
+def parse_date_strings(value:str)->Union[datetime.date, datetime.datetime, None]:
+    try:
+        return datetime.date.fromisoformat(value)
+    except:
+        pass
+    try:
+        return datetime.datetime.fromisoformat(value)
+    except:
+        raise ValueError('Value is not a date or datetime')
 
 class Filter(abc.ABC):
     OP = None
@@ -46,27 +54,29 @@ class Filter(abc.ABC):
             )
 
     @abc.abstractmethod
-    def apply(self, query:'Query', class_:type, property_map:pydantic.BaseModel)->'Query':
+    def apply(self, query:'Query', class_:type, property_map:dict)->'Query':
         raise NotImplementedError('apply is an abstract method')
 
     @abc.abstractmethod
     def is_valid(self)->bool:
         raise NotImplementedError('is_valid is an abstract method')
 
-    def _get_db_field(self, property_map:pydantic.BaseModel)->str:
+    def _get_db_field(self, property_map:dict)->str:
         if not property_map:
             return self.field
-        attr = getattr(property_map, self.field) #maps exteral fieldname to database field
-        if not attr:
+        try:
+            attr = property_map[self.field]
+        except KeyError:
             raise pydantic.ValidationError(f"'{attr}' is not a valid field")
         return attr or self.field
 
     def _date_or_value(self, value:Any)->Any:
         if not isinstance(value, str):
             return value
-        if re.match(RE_DATE, value):
-            return datetime.datetime.strptime(value, "%Y-%m-%d").date()
-        return value
+        try:
+            return parse_date_strings(value)
+        except ValueError:
+            return value #value is just some string 
 
 class RelativeComparator(Filter):
 
@@ -80,28 +90,28 @@ class RelativeComparator(Filter):
 class LTFilter(RelativeComparator):
     OP = "<"
 
-    def apply(self, query:'Query', class_:type, property_map:'pydantic.BaseModel')->'Query':
+    def apply(self, query:'Query', class_:type, property_map:dict)->'Query':
         field = self._get_db_field(property_map)
         return query.filter(getattr(class_, field) < self.value)
 
 class LTEFilter(RelativeComparator):
     OP = "<="
 
-    def apply(self, query:'Query', class_:type, property_map:'pydantic.BaseModel')->'Query':
+    def apply(self, query:'Query', class_:type, property_map:dict)->'Query':
         field = self._get_db_field(property_map)
         return query.filter(getattr(class_, field) <= self.value)
 
 class GTFilter(RelativeComparator):
     OP = ">"
 
-    def apply(self, query:'Query', class_:type, property_map:'pydantic.BaseModel')->'Query':
+    def apply(self, query:'Query', class_:type, property_map:dict)->'Query':
         field = self._get_db_field(property_map)
         return query.filter(getattr(class_, field) > self.value)
 
 class GTEFilter(RelativeComparator):
     OP = ">="
 
-    def apply(self, query:'Query', class_:type, property_map:'pydantic.BaseModel')->'Query':
+    def apply(self, query:'Query', class_:type, property_map:dict)->'Query':
         field = self._get_db_field(property_map)
         return query.filter(getattr(class_, field) >= self.value)
 
@@ -109,7 +119,7 @@ class GTEFilter(RelativeComparator):
 class EqualsFilter(Filter):
     OP = "="
 
-    def apply(self, query:'Query', class_:type, property_map:'pydantic.BaseModel')->'Query':
+    def apply(self, query:'Query', class_:type, property_map:dict)->'Query':
         field = self._get_db_field(property_map)
         return query.filter(getattr(class_, field) == self.value)
 
@@ -128,7 +138,7 @@ class InFilter(Filter):
     #         value = [value]
     #     super().__init__(field, value)
 
-    def apply(self, query:'Query', class_:type, property_map:'pydantic.BaseModel')->'Query':
+    def apply(self, query:'Query', class_:type, property_map:dict)->'Query':
         field = self._get_db_field(property_map)
         return query.filter(getattr(class_, field).in_(list(self.value)))
 
@@ -141,7 +151,7 @@ class InFilter(Filter):
 class NotEqualsFilter(Filter):
     OP = "!="
 
-    def apply(self, query:'Query', class_:type, property_map:'pydantic.BaseModel')->'Query':
+    def apply(self, query:'Query', class_:type, property_map:dict)->'Query':
         field = self._get_db_field(property_map)
         return query.filter(getattr(class_, field) != self.value)
 
@@ -156,7 +166,7 @@ class NotEqualsFilter(Filter):
 class LikeFilter(Filter):
     OP = "like"
 
-    def apply(self, query:'Query', class_:type, property_map:'pydantic.BaseModel')->'Query':
+    def apply(self, query:'Query', class_:type, property_map:dict)->'Query':
         field = self._get_db_field(property_map)
         return query.filter(getattr(class_, field).like(self.value))
 
@@ -169,7 +179,7 @@ class LikeFilter(Filter):
 class ContainsFilter(Filter):
     OP = "contains"
 
-    def apply(self, query:'Query', class_:type, property_map:'pydantic.BaseModel')->'Query':
+    def apply(self, query:'Query', class_:type, property_map:dict)->'Query':
         subfield = self.nested or "id"
         q = {subfield: self.value}
         field = self._get_db_field(property_map)

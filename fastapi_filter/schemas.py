@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import List, Union, TYPE_CHECKING
+from typing import List, Union, TYPE_CHECKING, Any
 from fastapi_filter.filters import FILTERS
 
 if TYPE_CHECKING:
@@ -16,9 +16,9 @@ def _get_filter_class(operator:str)->'Filter':
 class FilterSchema(BaseModel):
     field:str 
     op:str
-    value:Union[str,float,int, List[Union[str, float, int]]]
+    value: Any #Union[str,float,int, None, List[Union[str, float, int, None]]]
 
-def deserialize_filters(filters_data:List[FilterSchema])->List['Filter']:
+def deserialize_filters(filters_data:List[FilterSchema])->'List[Filter]':
     filters = []
     for f in filters_data:
         Class = _get_filter_class(f.op)
