@@ -14,7 +14,12 @@ dog_toys = Table(
     Column("toy_id", Integer, ForeignKey("toy.id"))
 )
 
-
+class Address(Base):
+    __tablename__ = 'address'
+    id = Column(Integer, primary_key=True)
+    dog_id = Column("dog_id", Integer, ForeignKey("dog.id"))
+    streetname = Column(String)
+    number = Column(Integer)
 
 class Toy(Base):
     __tablename__ = 'toy'
@@ -23,8 +28,6 @@ class Toy(Base):
 
     def __repr__(self):
         return f"<Toy(id={self.id}, name='{self.name}')>"
-
-
 
 class ToySchema(BaseModel):
     id:int
@@ -45,6 +48,7 @@ class Dog(Base):
     weight = Column(Float)
 
     toys = relationship("Toy", secondary="dog_toys", backref="dogs")
+    address = relationship("Address", uselist=False)
 
     @property
     def age(self):

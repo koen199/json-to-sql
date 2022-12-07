@@ -121,6 +121,9 @@ class EqualsFilter(Filter):
 
     def apply(self, query:'Query', class_:type, property_map:dict)->'Query':
         field = self._get_db_field(property_map)
+        if self.nested:
+            q = {self.nested: self.value}
+            return query.filter(getattr(class_, field).has(**q))
         return query.filter(getattr(class_, field) == self.value)
 
     def is_valid(self)->bool:

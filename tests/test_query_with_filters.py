@@ -106,3 +106,19 @@ def test_weight_gtefilter(sqlserver_session_factory, dogs):
     ]
     results = query_with_filters(session, Dog, filters)
     assert len(results) == 2
+
+def test_toys_containsfilter(sqlserver_session_factory, dogs):
+    session = sqlserver_session_factory()
+    filters = [
+        FilterSchema(field="toys.name", op="contains", value='ball')
+    ]
+    results = query_with_filters(session, Dog, filters)
+    assert len(results) == 2
+
+def test_address_nested_eq_filter(sqlserver_session_factory, dogs):
+    session = sqlserver_session_factory()
+    filters = [
+        FilterSchema(field="address.streetname", op="=", value='Spoorweglaan')
+    ]
+    results = query_with_filters(session, Dog, filters)
+    assert len(results) == 1
