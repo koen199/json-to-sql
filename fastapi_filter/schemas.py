@@ -16,7 +16,7 @@ def _get_filter_class(operator:str)->'Filter':
 class FilterSchema(BaseModel):
     field:str 
     op:str
-    value: Any #Union[str,float,int, None, List[Union[str, float, int, None]]]
+    value: Any 
 
 def deserialize_filters(filters_data:List[FilterSchema])->'List[Filter]':
     filters = []
