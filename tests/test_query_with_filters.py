@@ -1,5 +1,4 @@
 from datetime import date, datetime
-import pydantic
 
 from tests.petstore import Dog
 from fastapi_filter import query_with_filters

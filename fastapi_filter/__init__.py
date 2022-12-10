@@ -1,8 +1,5 @@
 from typing import TYPE_CHECKING, List, Union, Any
-from pydantic import BaseModel
-
 from fastapi_filter.schemas import deserialize_filters
-
 
 if TYPE_CHECKING:
     from sqlalchemy.orm import Session

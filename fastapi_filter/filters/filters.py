@@ -9,8 +9,6 @@ if TYPE_CHECKING:
     from sqlalchemy.orm import Query
     from ..schemas import FilterSchema
 
-
-
 logger = logging.getLogger(__name__)
 
 def parse_date_strings(value:str)->Union[datetime.date, datetime.datetime, None]:
@@ -135,11 +133,6 @@ class EqualsFilter(Filter):
 
 class InFilter(Filter):
     OP = "in"
-
-    # def __init__(self, field: str, value: Any):
-    #     if isinstance(value, str):
-    #         value = [value]
-    #     super().__init__(field, value)
 
     def apply(self, query:'Query', class_:type, property_map:dict)->'Query':
         field = self._get_db_field(property_map)

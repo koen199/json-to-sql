@@ -30,3 +30,10 @@ def test_no_filter_order_by_weight(sqlserver_session_factory, dogs):
     results = query_with_filters(session, Dog, filters, order_by=Dog.weight)
     expected_order = [2, 5, 4, 3, 1]
     assert expected_order == [dog.id for dog in results]
+
+def test_no_filter_order_by_weight_as_string(sqlserver_session_factory, dogs):
+    session = sqlserver_session_factory()
+    filters = []
+    results = query_with_filters(session, Dog, filters, order_by="weight")
+    expected_order = [2, 5, 4, 3, 1]
+    assert expected_order == [dog.id for dog in results]
