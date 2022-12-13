@@ -2,7 +2,7 @@
 from setuptools import find_packages, setup
 
 setup(
-    name='Fastapi-Filter',
+    name='fastapi_filter',
     version='0.0.1',
     author="Van den Maegdenbergh Koen",
     author_email="koen_vdm@hotmail.com",
