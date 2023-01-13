@@ -18,7 +18,7 @@ def build_query(
     query = session.query(class_)
     for f in _filters:
         query = f.apply(query, class_, property_map)
-    if order_by:
+    if order_by is not None:
         query = query.order_by(order_by)
     return query
 

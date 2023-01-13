@@ -65,7 +65,7 @@ class Filter(abc.ABC):
         try:
             attr = property_map[self.field]
         except KeyError:
-            raise pydantic.ValidationError(f"'{attr}' is not a valid field")
+            raise pydantic.ValidationError(f"'{attr}' is not a valid field", None)
         return attr or self.field
 
     def _date_or_value(self, value:Any)->Any:
@@ -83,7 +83,7 @@ class RelativeComparator(Filter):
             allowed = (int, float, datetime.date, datetime.datetime)
             assert isinstance(self.value, allowed)
         except AssertionError:
-            raise pydantic.ValidationError(f"{self} requires an ordinal value")
+            raise pydantic.ValidationError(f"{self} requires an ordinal value", None)
 
 class LTFilter(RelativeComparator):
     OP = "<"
@@ -129,7 +129,7 @@ class EqualsFilter(Filter):
         try:
             assert isinstance(self.value, allowed)
         except AssertionError:
-            raise pydantic.ValidationError(f"{self} requires a string or int value")
+            raise pydantic.ValidationError(f"{self} requires a string or int value", None)
 
 class InFilter(Filter):
     OP = "in"
@@ -142,7 +142,7 @@ class InFilter(Filter):
         try:
             _ = (e for e in self.value)
         except TypeError:
-            raise pydantic.ValidationError(f"{self} must be an iterable")
+            raise pydantic.ValidationError(f"{self} must be an iterable", None)
 
 class NotEqualsFilter(Filter):
     OP = "!="
@@ -156,7 +156,7 @@ class NotEqualsFilter(Filter):
         try:
             assert isinstance(self.value, allowed)
         except AssertionError:
-            raise pydantic.ValidationError(f"{self} requires a string or int value")
+            raise pydantic.ValidationError(f"{self} requires a string or int value", None)
 
 
 class LikeFilter(Filter):
@@ -170,7 +170,7 @@ class LikeFilter(Filter):
         try:
             assert isinstance(self.value, str)
         except AssertionError:
-            raise pydantic.ValidationError(f"{self} requires a string with a wildcard")
+            raise pydantic.ValidationError(f"{self} requires a string with a wildcard", None)
 
 class ContainsFilter(Filter):
     OP = "contains"

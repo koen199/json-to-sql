@@ -11,7 +11,7 @@ def _get_filter_class(operator:str)->'Filter':
     try:
         return __FILTER_MAP[operator]
     except KeyError:
-        raise ValidationError('No filter with operator {} exists'.format(operator))
+        raise ValidationError('No filter with operator {} exists'.format(operator), None)
 
 class FilterSchema(BaseModel):
     field:str 
