@@ -2,7 +2,7 @@
 from setuptools import find_packages, setup
 
 setup(
-    name='fastapi_filter',
+    name='json_to_sql',
     version='0.0.1',
     author="Van den Maegdenbergh Koen",
     author_email="koen_vdm@hotmail.com",
