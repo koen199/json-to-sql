@@ -1,0 +1,2 @@
+pydantic==1.10.4
+sqlalchemy==1.4.46
