@@ -2,8 +2,8 @@ import datetime
 import pytest
 import pydantic
 
-from fastapi_filter.schemas import FilterSchema, deserialize_filters
-from fastapi_filter import filters
+from json_to_sql.schemas import FilterSchema, deserialize_filters
+from json_to_sql import filters
 
 def test_ltfilter_accepts_floats():
     json = {"field": "weight", "op": "<", "value": 10.24}
@@ -217,49 +217,3 @@ def test_filter_schema_raises_validationerror_on_bad_op():
     json = {"field": "weight", "op": "ne", "value": 124}
     with pytest.raises(pydantic.ValidationError):
         deserialize_filters([FilterSchema(**json)])
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# def test_notequalsfilter_accepts_date():
-#     json = {"field": "name", "op": "!=", "value": datetime.date(2018, 12, 16)}
-#     [f] = deserialize_filters([FilterSchema(**json)])
-#     assert isinstance(f, filters.NotEqualsFilter)
-#     assert type(f.value) == datetime.date
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
