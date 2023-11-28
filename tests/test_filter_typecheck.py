@@ -29,7 +29,7 @@ def test_ltfilter_accepts_datetimes():
 
 def test_ltfilter_raises_validationerror_against_string():
     json = {"field": "weight", "op": "<", "value": "Fido"}
-    with pytest.raises(pydantic.ValidationError):
+    with pytest.raises(ValueError):
         deserialize_filters([FilterSchema(**json)])
 
 def test_ltefilter_accepts_floats():
@@ -56,7 +56,7 @@ def test_ltefilter_accepts_datetimes():
 
 def test_ltefilter_raises_validationerror_against_string():
     json = {"field": "name", "op": "<=", "value": "Fido"}
-    with pytest.raises(pydantic.ValidationError):
+    with pytest.raises(ValueError):
         deserialize_filters([FilterSchema(**json)])
 
 def test_gtfilter_accepts_floats():
@@ -83,7 +83,7 @@ def test_gtfilter_accepts_datetimes():
 
 def test_gtfilter_raises_validationerror_against_string():
     json = {"field": "name", "op": ">", "value": "Fido"}
-    with pytest.raises(pydantic.ValidationError):
+    with pytest.raises(ValueError):
         deserialize_filters([FilterSchema(**json)])
 
 def test_gtefilter_accepts_floats():
@@ -110,7 +110,7 @@ def test_gtefilter_accepts_datetimes():
 
 def test_gtefilter_raises_validationerror_against_string():
     json = {"field": "name", "op": ">=", "value": "Fido"}
-    with pytest.raises(pydantic.ValidationError):
+    with pytest.raises(ValueError):
         deserialize_filters([FilterSchema(**json)])
 
 def test_equalfilter_accepts_ints():
@@ -142,7 +142,7 @@ def test_equalfilter_accepts_none():
 
 def test_equalsfilter_raises_validationerror_against_float():
     json = {"field": "weight", "op": "=", "value": 12.345}
-    with pytest.raises(pydantic.ValidationError):
+    with pytest.raises(ValueError):
         deserialize_filters([FilterSchema(**json)])
 
 def test_infilter_accepts_list_of_ints():
@@ -158,7 +158,7 @@ def test_infilter_accepts_list_of_strings():
 def test_infilter_raises_typeerror_on_non_iterable():
     dates = datetime.date(2019, 3, 17)
     json = {"field": "dateOfBirth", "op": "in", "value": dates}
-    with pytest.raises(pydantic.ValidationError):    
+    with pytest.raises(ValueError):    
         [f] = deserialize_filters([FilterSchema(**json)])
 
 def test_notequalsfilter_accepts_string():
@@ -190,7 +190,7 @@ def test_notequalsfilter_accepts_none():
 
 def test_notequalsfilter_fails_on_float():
     json = {"field": "age", "op": "!=", "value": 10.234}
-    with pytest.raises(pydantic.ValidationError):
+    with pytest.raises(ValueError):
         deserialize_filters([FilterSchema(**json)])
 
 def test_likefilter_accepts_strings():
@@ -200,20 +200,20 @@ def test_likefilter_accepts_strings():
 
 def test_likefilter_fails_on_int():
     json = {"field": "age", "op": "like", "value": 4}
-    with pytest.raises(pydantic.ValidationError):
+    with pytest.raises(ValueError):
         deserialize_filters([FilterSchema(**json)])
 
 def test_likefilter_fails_on_float():
     json = {"field": "age", "op": "like", "value": 4.20}
-    with pytest.raises(pydantic.ValidationError):
+    with pytest.raises(ValueError):
         deserialize_filters([FilterSchema(**json)])
 
 def test_likefilter_fails_on_date():
     json = {"field": "dateOfBirth", "op": "like", "value": "2018-12-15"}
-    with pytest.raises(pydantic.ValidationError):
+    with pytest.raises(ValueError):
         deserialize_filters([FilterSchema(**json)])
 
 def test_filter_schema_raises_validationerror_on_bad_op():
     json = {"field": "weight", "op": "ne", "value": 124}
-    with pytest.raises(pydantic.ValidationError):
+    with pytest.raises(KeyError):
         deserialize_filters([FilterSchema(**json)])

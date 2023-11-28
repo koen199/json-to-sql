@@ -3,6 +3,7 @@ import re
 import datetime
 import logging
 import pydantic
+from sqlalchemy import inspect
 
 from typing import Any, TYPE_CHECKING, Union
 if TYPE_CHECKING:
@@ -65,7 +66,7 @@ class Filter(abc.ABC):
         try:
             attr = property_map[self.field]
         except KeyError:
-            raise pydantic.ValidationError(f"'{attr}' is not a valid field", None)
+            raise ValueError(f"'{attr}' is not a valid field", None)
         return attr or self.field
 
     def _date_or_value(self, value:Any)->Any:
@@ -83,7 +84,7 @@ class RelativeComparator(Filter):
             allowed = (int, float, datetime.date, datetime.datetime)
             assert isinstance(self.value, allowed)
         except AssertionError:
-            raise pydantic.ValidationError(f"{self} requires an ordinal value", None)
+            raise ValueError(f"{self} requires an ordinal value", None)
 
 class LTFilter(RelativeComparator):
     OP = "<"
@@ -121,7 +122,12 @@ class EqualsFilter(Filter):
         field = self._get_db_field(property_map)
         if self.nested:
             q = {self.nested: self.value}
-            return query.filter(getattr(class_, field).has(**q))
+            attr = getattr(class_, field)
+            #FIXME Not ideal, would be better if we could have a conditional check to see if the attribute is a scalar or a collection
+            try:
+                return query.filter(attr.has(**q))
+            except:
+                return query.filter(attr.any(**q))
         return query.filter(getattr(class_, field) == self.value)
 
     def is_valid(self)->bool:
@@ -129,7 +135,7 @@ class EqualsFilter(Filter):
         try:
             assert isinstance(self.value, allowed)
         except AssertionError:
-            raise pydantic.ValidationError(f"{self} requires a string or int value", None)
+            raise ValueError(f"{self} requires a string or int value", None)
 
 class InFilter(Filter):
     OP = "in"
@@ -142,7 +148,7 @@ class InFilter(Filter):
         try:
             _ = (e for e in self.value)
         except TypeError:
-            raise pydantic.ValidationError(f"{self} must be an iterable", None)
+            raise ValueError(f"{self} must be an iterable", None)
 
 class NotEqualsFilter(Filter):
     OP = "!="
@@ -156,7 +162,7 @@ class NotEqualsFilter(Filter):
         try:
             assert isinstance(self.value, allowed)
         except AssertionError:
-            raise pydantic.ValidationError(f"{self} requires a string or int value", None)
+            raise ValueError(f"{self} requires a string or int value", None)
 
 
 class LikeFilter(Filter):
@@ -170,7 +176,7 @@ class LikeFilter(Filter):
         try:
             assert isinstance(self.value, str)
         except AssertionError:
-            raise pydantic.ValidationError(f"{self} requires a string with a wildcard", None)
+            raise ValueError(f"{self} requires a string with a wildcard", None)
 
 class ContainsFilter(Filter):
     OP = "contains"

@@ -114,10 +114,18 @@ def test_toys_containsfilter(sqlserver_session_factory, dogs):
     results = json_to_sql.build_query(session, Dog, filters).all()
     assert len(results) == 2
 
-def test_address_nested_eq_filter(sqlserver_session_factory, dogs):
+def test_address_nested_eq_filter_scalar_attribute(sqlserver_session_factory, dogs):
     session = sqlserver_session_factory()
     filters = [
         FilterSchema(field="address.streetname", op="=", value='Spoorweglaan')
+    ]
+    results = json_to_sql.build_query(session, Dog, filters).all()
+    assert len(results) == 1
+
+def test_address_nested_eq_filter_collections_attribute(sqlserver_session_factory, dogs):
+    session = sqlserver_session_factory()
+    filters = [
+        FilterSchema(field="toys.name", op="=", value='rope')
     ]
     results = json_to_sql.build_query(session, Dog, filters).all()
     assert len(results) == 1
