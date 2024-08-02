@@ -4,6 +4,8 @@ import logging
 from sqlalchemy.sql.expression import Select
 from sqlalchemy import orm
 from sqlalchemy import inspect
+from sqlalchemy.sql.visitors import ClauseVisitor
+
 
 from typing import Any, TYPE_CHECKING, Union
 if TYPE_CHECKING:
@@ -20,12 +22,19 @@ def parse_date_strings(value:str)->Union[datetime.date, datetime.datetime, None]
         return datetime.datetime.fromisoformat(value)
     except:
         raise ValueError('Value is not a date or datetime')
-    
+
+# Visitor class to collect tables
+class TableCollector(ClauseVisitor):
+    def __init__(self):
+        self.tables = set()
+
+    def visit_table(self, table):
+        self.tables.add(table.name)
     
 def join_relations(stmt:Select, class_:Any, fields:list[str])->Select:
     nested_class_ = class_
     for field in fields:
-        nested_class_  = getattr(class_, field).mapper.class_
+        nested_class_  = getattr(nested_class_, field).mapper.class_
         if not already_joined(stmt, nested_class_):
             stmt = stmt.join(nested_class_)
     return stmt, nested_class_
@@ -34,9 +43,11 @@ def already_joined(stmt:Select, class_:Any):
     if not isinstance(stmt.get_final_froms()[0], orm.util._ORMJoin):
         #FROM clause contains no join
         return False
-    joined_tables = [from_.right.key for from_ in stmt.froms] #List of tables already joined
+    collector = TableCollector()
+    collector.traverse(stmt)
+    
     tablename = inspect(class_).mapped_table.name
-    return tablename in joined_tables 
+    return tablename in collector.tables    
     
 class Filter(abc.ABC):
     OP = None
