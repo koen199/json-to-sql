@@ -80,11 +80,7 @@ class Filter(abc.ABC):
     def _get_db_field(self, field:str, property_map:dict)->str:
         if not property_map:
             return field
-        try:
-            attr = property_map[field]
-        except KeyError:
-            raise ValueError(f"'{attr}' is not a valid field", None)
-        return attr or field
+        return property_map.get(field, field)
     
     def _get_db_fields(self, fields:list[str], property_map:dict):
         db_fields = []

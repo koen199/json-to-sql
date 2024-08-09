@@ -3,7 +3,7 @@ from setuptools import find_packages, setup
 
 setup(
     name='json_to_sql',
-    version='0.1.2',
+    version='0.1.3',
     author="Van den Maegdenbergh Koen",
     author_email="koen_vdm@hotmail.com",
     description="A fast-api extension for creating standard resource searches",
