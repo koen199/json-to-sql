@@ -18,7 +18,13 @@ def build_query(
         query = f.apply(query, class_, property_map)
 
     if isinstance(order_by, str):
-        order_by = [order_by]
+        order_by = order_by.split(',')
+
+        if property_map:
+            order_by = [
+                getattr(class_, property_map.get(field, field))
+                for field in order_by
+            ]
 
     if isinstance(is_desc, bool):
         is_desc = [is_desc] * (len(order_by) if order_by else 0)

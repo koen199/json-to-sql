@@ -50,3 +50,11 @@ def test_no_filter_order_by_name_and_weight(sqlserver_session_factory:Session, d
     results = session.scalars(stmt).all()
     expected_order = [2, 4, 5, 3, 1]    
     assert expected_order == [dog.id for dog in results]
+
+def test_no_filter_order_by_name_and_weight_as_string(sqlserver_session_factory:Session, dogs):
+    session = sqlserver_session_factory()
+    filters = []
+    stmt = json_to_sql.build_query(Dog, filters, order_by='name,weight')
+    results = session.scalars(stmt).all()
+    expected_order = [2, 4, 5, 3, 1]    
+    assert expected_order == [dog.id for dog in results]
