@@ -19,12 +19,10 @@ def build_query(
 
     if isinstance(order_by, str):
         order_by = order_by.split(',')
-
-        if property_map:
-            order_by = [
-                getattr(class_, property_map.get(field, field))
-                for field in order_by
-            ]
+        order_by = [
+            getattr(class_, property_map[field] if property_map and field in property_map else field)
+            for field in order_by
+        ]
 
     if isinstance(is_desc, bool):
         is_desc = [is_desc] * (len(order_by) if order_by else 0)
