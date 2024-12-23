@@ -46,7 +46,7 @@ def already_joined(stmt:Select, class_:Any):
     collector = TableCollector()
     collector.traverse(stmt)
     
-    tablename = inspect(class_).mapped_table.name
+    tablename = inspect(class_).persist_selectable.name
     return tablename in collector.tables    
     
 class Filter(abc.ABC):

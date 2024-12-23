@@ -1,23 +1,37 @@
 from typing import TYPE_CHECKING, List, Union, Any
 import sqlalchemy as sa
-from sqlalchemy.orm import Session
-from sqlalchemy import desc
 from json_to_sql.schemas import deserialize_filters
 
 if TYPE_CHECKING:
     from json_to_sql.schemas import FilterSchema
 
 def build_query(
-    class_:type,
+    class_: type,
     filters: List['FilterSchema'],
-    property_map:Union[dict, None]=None,
-    order_by:Union[str, None]=None,
-    is_desc:bool=False
+    property_map: Union[dict, None] = None,
+    order_by: Union[str, List[str], None] = None,
+    is_desc: Union[bool, List[bool]] = False
 ):
     _filters = deserialize_filters(filters)
     query = sa.select(class_)
     for f in _filters:
         query = f.apply(query, class_, property_map)
-    if order_by is not None:
-        query = query.order_by(desc(order_by) if is_desc else order_by)
+
+    if isinstance(order_by, str):
+        order_by = order_by.split(',')
+        order_by = [
+            getattr(class_, property_map[field] if property_map and field in property_map else field)
+            for field in order_by
+        ]
+
+    if isinstance(is_desc, bool):
+        is_desc = [is_desc] * (len(order_by) if order_by else 0)
+
+    if order_by:
+        if len(order_by) != len(is_desc):
+            raise ValueError("order_by and is_desc must have the same length.")
+        
+        for field, desc_flag in zip(order_by, is_desc):
+            query = query.order_by(sa.desc(field) if desc_flag else field)
+
     return query
