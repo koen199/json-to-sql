@@ -1,24 +1,38 @@
 from typing import TYPE_CHECKING, List, Union, Any
 import sqlalchemy as sa
 from json_to_sql.schemas import deserialize_filters
+from json_to_sql.filters.filters import CompositeFilter
 
 if TYPE_CHECKING:
-    from json_to_sql.schemas import FilterSchema
+    from json_to_sql.schemas import FilterSchema, CompositeFilterSchema
 
 def build_query(
     class_: type,
-    filters: List['FilterSchema'],
+    filters: Union[List[Union['FilterSchema', 'CompositeFilterSchema']]],
     property_map: Union[dict, None] = None,
     order_by: str = None,
     is_desc: bool|str = False
 ):
     _filters = deserialize_filters(filters)
     query = sa.select(class_)
-    for f in _filters:
-        query = f.apply(query, class_, property_map)
+    joined_tables = set()
+
+    if isinstance(_filters, list):
+        if len(_filters) == 1 and isinstance(_filters[0], CompositeFilter):
+            root_filter = _filters[0]
+        else:
+            root_filter = CompositeFilter(op="and", filters=_filters)
+    else:
+        root_filter = _filters
+
+    query = sa.select(class_)
+    joined_tables = set()
+
+    query = root_filter.apply(query, class_, property_map, joined_tables)
 
     if order_by:
-        order_by = order_by.split(',')
+        if isinstance(order_by, str):
+            order_by = order_by.split(',')
         order_by = [
             getattr(class_, property_map[field] if property_map and field in property_map else field)
             for field in order_by

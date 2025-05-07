@@ -1,9 +1,7 @@
-from pydantic import BaseModel, ValidationError
-from typing import TYPE_CHECKING, List, Any
+from pydantic import BaseModel
+from typing import List, Any, Union
 from json_to_sql.filters import FILTERS
-
-if TYPE_CHECKING:
-    from json_to_sql.filters.filters import Filter
+from json_to_sql.filters.filters import Filter, CompositeFilter
 
 __FILTER_MAP = {f.OP: f for f in FILTERS}
 
@@ -18,9 +16,22 @@ class FilterSchema(BaseModel):
     op:str
     value: Any 
 
-def deserialize_filters(filters_data:List[FilterSchema])->'List[Filter]':
+class CompositeFilterSchema(BaseModel):
+    op: str
+    value: List[Union[FilterSchema, 'CompositeFilterSchema']]
+
+def deserialize_filters(filters_data: List[Union[FilterSchema, CompositeFilterSchema]]) -> List[Filter]:
     filters = []
+    
     for f in filters_data:
-        Class = _get_filter_class(f.op)
-        filters.append(Class(f))
+        if isinstance(f, FilterSchema):
+            Class = _get_filter_class(f.op)
+            filters.append(Class(f))
+
+        elif isinstance(f, CompositeFilterSchema):
+            composite_filter = CompositeFilter(
+                op=f.op,
+                filters=deserialize_filters(f.value)
+            )
+            filters.append(composite_filter)
     return filters
