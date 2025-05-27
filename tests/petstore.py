@@ -25,7 +25,7 @@ class Toy(Base):
     __tablename__ = 'toy'
     id = Column(Integer, primary_key=True)
     dog_id = Column(Integer, ForeignKey('dog.id'))
-    name = Column(String(32), unique=True)
+    name = Column(String(32))#, unique=True)
     manufacturer = Column(String(32), default='Hasbro')
 
     def __repr__(self):

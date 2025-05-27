@@ -17,6 +17,7 @@ class FilterSchema(BaseModel):
     field:str 
     op:str
     value: Any 
+    condition_group: str = '__default__'
 
 def deserialize_filters(filters_data:List[FilterSchema])->'List[Filter]':
     filters = []

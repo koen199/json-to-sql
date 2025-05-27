@@ -26,18 +26,21 @@ def sqlserver_session_factory(sqllite_db):
 @pytest.fixture
 def dogs(sqlserver_session_factory):
     session =  sqlserver_session_factory()
-    ball = petstore.Toy(name='ball')
-    rope = petstore.Toy(name='rope')
-    squicky_toy = petstore.Toy(name='squicky toy')
     doggos = [
         petstore.Dog(
             name="Xocomil", dob=date(1990, 12, 16), weight=100,
-            toys=[ball, rope], 
+            toys=[
+                petstore.Toy(name='ball'),
+                petstore.Toy(name='rope')
+            ],
             address=petstore.Address(streetname='Molenstraat', number=40)
         ),
         petstore.Dog(
             name="Jasmine", dob=date(1997, 4, 20), weight=40,
-            toys=[ball, squicky_toy], 
+            toys=[
+                petstore.Toy(name='ball'),
+                petstore.Toy(name='squicky toy')
+            ],
             address=petstore.Address(streetname='Spoorweglaan', number=153)
 
         ),

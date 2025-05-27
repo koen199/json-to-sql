@@ -5,6 +5,7 @@ from sqlalchemy.sql.expression import Select
 from sqlalchemy import orm
 from sqlalchemy import inspect
 from sqlalchemy.sql.visitors import ClauseVisitor
+from sqlalchemy import Column
 
 
 from typing import Any, TYPE_CHECKING, Union
@@ -23,31 +24,7 @@ def parse_date_strings(value:str)->Union[datetime.date, datetime.datetime, None]
     except:
         raise ValueError('Value is not a date or datetime')
 
-# Visitor class to collect tables
-class TableCollector(ClauseVisitor):
-    def __init__(self):
-        self.tables = set()
-
-    def visit_table(self, table):
-        self.tables.add(table.name)
     
-def join_relations(stmt:Select, class_:Any, fields:list[str])->Select:
-    nested_class_ = class_
-    for field in fields:
-        nested_class_  = getattr(nested_class_, field).mapper.class_
-        if not already_joined(stmt, nested_class_):
-            stmt = stmt.join(nested_class_)
-    return stmt, nested_class_
-
-def already_joined(stmt:Select, class_:Any):
-    if not isinstance(stmt.get_final_froms()[0], orm.util._ORMJoin):
-        #FROM clause contains no join
-        return False
-    collector = TableCollector()
-    collector.traverse(stmt)
-    
-    tablename = inspect(class_).persist_selectable.name
-    return tablename in collector.tables    
     
 class Filter(abc.ABC):
     OP = None
@@ -56,11 +33,11 @@ class Filter(abc.ABC):
         self.nested = None
         self.fields:list[str] = filter_data.field.split('.')
         self.value = self._date_or_value(filter_data.value)
+        self.condition_group = filter_data.condition_group
         self.is_valid()
 
     def __repr__(self)->str:
-        fields = '.'.join(self.fields)
-        return f"<{type(self).__name__}(field='{'.'.join(fields)}', op='{self.OP}'" \
+        return f"<{type(self).__name__}(field='{'.'.join(self.fields)}', op='{self.OP}'" \
                f", value={self.value})>"
 
     def __eq__(self, other)->bool:
@@ -70,24 +47,12 @@ class Filter(abc.ABC):
         return hash((self.field, self.OP, self.value))
 
     @abc.abstractmethod
-    def apply(self, stmt:'Select', class_:type, property_map:dict)->'Select':
+    def apply(self, stmt:'Select', attrib:Column, property_map:dict)->'Select':
         raise NotImplementedError('apply is an abstract method')
 
     @abc.abstractmethod
     def is_valid(self)->bool:
         raise NotImplementedError('is_valid is an abstract method')
-
-    def _get_db_field(self, field:str, property_map:dict)->str:
-        if not property_map:
-            return field
-        return property_map.get(field, field)
-    
-    def _get_db_fields(self, fields:list[str], property_map:dict):
-        db_fields = []
-        for field in fields:
-            db_field = self._get_db_field(field, property_map)
-            db_fields.append(db_field)
-        return db_fields        
 
     def _date_or_value(self, value:Any)->Any:
         if not isinstance(value, str):
@@ -108,44 +73,34 @@ class RelativeComparator(Filter):
 class LTFilter(RelativeComparator):
     OP = "<"
 
-    def apply(self, stmt:'Select', class_:type, property_map:dict)->'Select':
-        fields = self._get_db_fields(self.fields, property_map)        
-        stmt, class_ = join_relations(stmt, class_, fields[:-1])
-        stmt = stmt.where(getattr(class_, fields[-1]) < self.value)
+    def apply(self, stmt:'Select', attrib:Column, property_map:dict)->'Select':
+        stmt = stmt.where(attrib < self.value)
         return stmt
 class LTEFilter(RelativeComparator):
     OP = "<="
 
-    def apply(self, stmt:'Select', class_:type, property_map:dict)->'Select':
-        fields = self._get_db_fields(self.fields, property_map)        
-        stmt, class_ = join_relations(stmt, class_, fields[:-1])
-        stmt = stmt.where(getattr(class_, fields[-1]) <= self.value)
+    def apply(self, stmt:'Select', attrib:Column, property_map:dict)->'Select':
+        stmt = stmt.where(attrib <= self.value)
         return stmt
 
 class GTFilter(RelativeComparator):
     OP = ">"
 
-    def apply(self, stmt:'Select', class_:type, property_map:dict)->'Select':
-        fields = self._get_db_fields(self.fields, property_map)        
-        stmt, class_ = join_relations(stmt, class_, fields[:-1])
-        stmt = stmt.where(getattr(class_, fields[-1]) > self.value)
+    def apply(self, stmt:'Select', attrib:Column, property_map:dict)->'Select':
+        stmt = stmt.where(attrib > self.value)
         return stmt
 
 class GTEFilter(RelativeComparator):
     OP = ">="
 
-    def apply(self, stmt:'Select', class_:type, property_map:dict)->'Select':
-        fields = self._get_db_fields(self.fields, property_map)        
-        stmt, class_ = join_relations(stmt, class_, fields[:-1])
-        stmt = stmt.where(getattr(class_, fields[-1]) >= self.value)
+    def apply(self, stmt:'Select', attrib:Column, property_map:dict)->'Select':
+        stmt = stmt.where(attrib >= self.value)
         return stmt
 class EqualsFilter(Filter):
     OP = "="
 
-    def apply(self, stmt:'Select', class_:type, property_map:dict)->'Select':
-        fields = self._get_db_fields(self.fields, property_map)   
-        stmt, class_ = join_relations(stmt, class_, fields[:-1])
-        stmt = stmt.where(getattr(class_, fields[-1]) == self.value)
+    def apply(self, stmt:'Select', attrib:Column, property_map:dict)->'Select':
+        stmt = stmt.where(attrib == self.value)
         return stmt
 
     def is_valid(self)->bool:
@@ -158,10 +113,8 @@ class EqualsFilter(Filter):
 class InFilter(Filter):
     OP = "in"
 
-    def apply(self, stmt:'Select', class_:type, property_map:dict)->'Select':
-        fields = self._get_db_fields(self.fields, property_map)
-        stmt, class_ = join_relations(stmt, class_, fields[:-1])
-        stmt = stmt.where(getattr(class_, fields[-1]).in_(list(self.value)))
+    def apply(self, stmt:'Select', attrib:Column, property_map:dict)->'Select':
+        stmt = stmt.where(attrib.in_(list(self.value)))
         return stmt
 
     def is_valid(self)->bool:
@@ -173,10 +126,8 @@ class InFilter(Filter):
 class NotEqualsFilter(Filter):
     OP = "!="
 
-    def apply(self, stmt:'Select', class_:type, property_map:dict)->'Select':
-        fields = self._get_db_fields(self.fields, property_map)
-        stmt, class_ = join_relations(stmt, class_, fields[:-1])
-        stmt = stmt.where(getattr(class_, fields[-1]) != self.value)
+    def apply(self, stmt:'Select', attrib:Column, property_map:dict)->'Select':
+        stmt = stmt.where(attrib != self.value)
         return stmt
 
     def is_valid(self)->bool:
@@ -190,10 +141,8 @@ class NotEqualsFilter(Filter):
 class LikeFilter(Filter):
     OP = "like"
 
-    def apply(self, stmt:'Select', class_:type, property_map:dict)->'Select':
-        fields = self._get_db_fields(self.fields, property_map)        
-        stmt, class_ = join_relations(stmt, class_, fields[:-1])
-        stmt = stmt.where(getattr(class_, fields[-1]).like(self.value))
+    def apply(self, stmt:'Select', attrib:Column, property_map:dict)->'Select':
+        stmt = stmt.where(attrib.like(self.value))
         return stmt
 
     def is_valid(self)->bool:

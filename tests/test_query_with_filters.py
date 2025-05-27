@@ -60,7 +60,7 @@ def test_nested_in_filter(sqlserver_session_factory, dogs):
         FilterSchema(field="toys.name", op="in", value=["ball", "rope"])
     ]
     stmt = json_to_sql.build_query(Dog, filters)
-    results = session.scalars(stmt).all()
+    results = session.scalars(stmt).unique().all()
     assert len(results) == 2
 
 def test_dob_filter(sqlserver_session_factory, dogs):
@@ -185,4 +185,16 @@ def test_multiple_filters_avoid_double_join(sqlserver_session_factory, dogs):
     stmt = json_to_sql.build_query(Dog, filters)
     results = session.scalars(stmt).all()
     assert len(results) == 1
+    
+    
+def test_multiple_filters_with_condition_group(sqlserver_session_factory, dogs):
+    session = sqlserver_session_factory()
+    filters = [
+        FilterSchema(field="toys.name", op="=", value='ball', condition_group='A'),
+        FilterSchema(field="toys.name", op="=", value='rope', condition_group='B')
+    ]
+    stmt = json_to_sql.build_query(Dog, filters)
+    results = session.scalars(stmt).all()
+    assert len(results) == 1
+    assert results[0].name == 'Xocomil'
     
