@@ -46,8 +46,7 @@ def join_required_relations(
     class_:Any,
     tree:dict,
     property_map:dict,
-    condition_group:str,
-    alias=True
+    condition_group:str
 )->Select:
     for k, v in tree.items():
         if v == None:
@@ -63,9 +62,8 @@ def join_required_relations(
             getattr(class_, lc.name) == getattr(nested_class_, rc.name)
             for lc, rc in rel_prop.local_remote_pairs
         ]
-        
         stmt = stmt.join_from(class_, nested_class_, join_condition[0])
-        stmt = join_required_relations(stmt, nested_class_, tree[k], property_map, condition_group, alias=False)
+        stmt = join_required_relations(stmt, nested_class_, tree[k], property_map, condition_group)
     return stmt    
 
 def build_query(
@@ -88,7 +86,7 @@ def build_query(
     for f in _filters:
         tree = tree_condition_grouped[f.condition_group]
         attrib = get_attrib_from_tree(tree, f.fields)
-        query = f.apply(query, attrib, property_map)
+        query = f.apply(query, attrib)
 
     if isinstance(order_by, str):
         order_by = order_by.split(',')

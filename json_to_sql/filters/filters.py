@@ -47,7 +47,7 @@ class Filter(abc.ABC):
         return hash((self.field, self.OP, self.value))
 
     @abc.abstractmethod
-    def apply(self, stmt:'Select', attrib:Column, property_map:dict)->'Select':
+    def apply(self, stmt:'Select', attrib:Column)->'Select':
         raise NotImplementedError('apply is an abstract method')
 
     @abc.abstractmethod
@@ -73,33 +73,33 @@ class RelativeComparator(Filter):
 class LTFilter(RelativeComparator):
     OP = "<"
 
-    def apply(self, stmt:'Select', attrib:Column, property_map:dict)->'Select':
+    def apply(self, stmt:'Select', attrib:Column)->'Select':
         stmt = stmt.where(attrib < self.value)
         return stmt
 class LTEFilter(RelativeComparator):
     OP = "<="
 
-    def apply(self, stmt:'Select', attrib:Column, property_map:dict)->'Select':
+    def apply(self, stmt:'Select', attrib:Column)->'Select':
         stmt = stmt.where(attrib <= self.value)
         return stmt
 
 class GTFilter(RelativeComparator):
     OP = ">"
 
-    def apply(self, stmt:'Select', attrib:Column, property_map:dict)->'Select':
+    def apply(self, stmt:'Select', attrib:Column)->'Select':
         stmt = stmt.where(attrib > self.value)
         return stmt
 
 class GTEFilter(RelativeComparator):
     OP = ">="
 
-    def apply(self, stmt:'Select', attrib:Column, property_map:dict)->'Select':
+    def apply(self, stmt:'Select', attrib:Column)->'Select':
         stmt = stmt.where(attrib >= self.value)
         return stmt
 class EqualsFilter(Filter):
     OP = "="
 
-    def apply(self, stmt:'Select', attrib:Column, property_map:dict)->'Select':
+    def apply(self, stmt:'Select', attrib:Column)->'Select':
         stmt = stmt.where(attrib == self.value)
         return stmt
 
@@ -113,7 +113,7 @@ class EqualsFilter(Filter):
 class InFilter(Filter):
     OP = "in"
 
-    def apply(self, stmt:'Select', attrib:Column, property_map:dict)->'Select':
+    def apply(self, stmt:'Select', attrib:Column)->'Select':
         stmt = stmt.where(attrib.in_(list(self.value)))
         return stmt
 
@@ -126,7 +126,7 @@ class InFilter(Filter):
 class NotEqualsFilter(Filter):
     OP = "!="
 
-    def apply(self, stmt:'Select', attrib:Column, property_map:dict)->'Select':
+    def apply(self, stmt:'Select', attrib:Column)->'Select':
         stmt = stmt.where(attrib != self.value)
         return stmt
 
@@ -141,7 +141,7 @@ class NotEqualsFilter(Filter):
 class LikeFilter(Filter):
     OP = "like"
 
-    def apply(self, stmt:'Select', attrib:Column, property_map:dict)->'Select':
+    def apply(self, stmt:'Select', attrib:Column)->'Select':
         stmt = stmt.where(attrib.like(self.value))
         return stmt
 
