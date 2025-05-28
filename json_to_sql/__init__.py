@@ -55,10 +55,16 @@ def join_required_relations(
             tree[k] = getattr(class_, fieldname)
             continue
         fieldname = get_internal_db_field(k, property_map)
+        rel_prop = sa.inspect(class_).mapper.relationships[fieldname]
+        # Build join condition dynamically
         nested_class_ = getattr(class_, fieldname).mapper.class_
-        if alias:
-            nested_class_ = orm.aliased(nested_class_)
-        stmt = stmt.join(nested_class_)
+        nested_class_ = orm.aliased(nested_class_)
+        join_condition = [
+            getattr(class_, lc.name) == getattr(nested_class_, rc.name)
+            for lc, rc in rel_prop.local_remote_pairs
+        ]
+        
+        stmt = stmt.join_from(class_, nested_class_, join_condition[0])
         stmt = join_required_relations(stmt, nested_class_, tree[k], property_map, condition_group, alias=False)
     return stmt    
 
