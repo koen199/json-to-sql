@@ -57,7 +57,7 @@ def join_required_relations(
         fieldname = get_internal_db_field(k, property_map)
         nested_class_ = getattr(class_, fieldname).mapper.class_
         if alias:
-            nested_class_ = orm.aliased(nested_class_, name=condition_group)
+            nested_class_ = orm.aliased(nested_class_)
         stmt = stmt.join(nested_class_)
         stmt = join_required_relations(stmt, nested_class_, tree[k], property_map, condition_group, alias=False)
     return stmt    

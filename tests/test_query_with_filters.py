@@ -197,4 +197,3 @@ def test_multiple_filters_with_condition_group(sqlserver_session_factory, dogs):
     results = session.scalars(stmt).all()
     assert len(results) == 1
     assert results[0].name == 'Xocomil'
-    
